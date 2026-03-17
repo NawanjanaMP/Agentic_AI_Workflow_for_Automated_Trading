@@ -1,0 +1,43 @@
+# Environment
+.env
+*.env.local
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+venv/
+.venv/
+*.egg
+
+# Data — never commit raw data to git
+data/raw/
+data/processed/
+*.parquet
+*.csv
+*.jsonl
+
+# Notebooks — output cells can leak credentials
+notebooks/.ipynb_checkpoints/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+
+# AWS — never commit credentials
+.aws/
+terraform.tfstate
+terraform.tfstate.backup
+*.tfvars
+
+# Logs
+logs/
+*.log
+
+# Testing
+.coverage
+htmlcov/
+.pytest_cache/
