@@ -33,12 +33,18 @@ class BinanceCollector:
     """
 
     def __init__(self):
-        # REST client (synchronous) — for historical backfill
-        self.exchange = ccxt.binance({
-            "apiKey": settings.BINANCE_API_KEY or "",
-            "secret": settings.BINANCE_SECRET_KEY or "",
-            "enableRateLimit": True,         # built-in rate limiter
-        })
+        # Public market data works without API keys.
+        # Only attach keys if they are real (not placeholders).
+        placeholders = {"", "your_key_here", "skip"}
+        api_key = settings.BINANCE_API_KEY
+        secret  = settings.BINANCE_SECRET_KEY
+
+        config = {"enableRateLimit": True}
+        if api_key not in placeholders and secret not in placeholders:
+            config["apiKey"] = api_key
+            config["secret"] = secret
+
+        self.exchange = ccxt.binance(config)
         self.uploader = S3Uploader()
 
     # ── Historical REST Fetch ─────────────────────
