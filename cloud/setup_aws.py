@@ -101,8 +101,9 @@ def create_s3_buckets():
             logger.success(f"Created S3 bucket: {bucket_name} — {bucket_config['description']}")
 
         except ClientError as e:
-            if e.response["Error"]["Code"] == "BucketAlreadyOwnedByYou":
-                logger.info(f"Bucket already exists (owned by you): {bucket_name}")
+            code = e.response["Error"]["Code"]
+            if code in ("BucketAlreadyOwnedByYou", "BucketAlreadyExists"):
+                logger.info(f"Bucket already exists, skipping: {bucket_name}")
             else:
                 logger.error(f"Failed to create bucket {bucket_name}: {e}")
 
@@ -132,7 +133,7 @@ def create_rds_instance():
             DBInstanceIdentifier="trading-db",
             DBInstanceClass="db.t3.micro",          # Free Tier eligible
             Engine="postgres",
-            EngineVersion="15.4",
+            EngineVersion="16.3",
             MasterUsername=settings.RDS_USER,
             MasterUserPassword=settings.RDS_PASSWORD,
             DBName=settings.RDS_DATABASE,
@@ -140,7 +141,7 @@ def create_rds_instance():
             StorageType="gp2",
             MultiAZ=False,                          # Single-AZ for dev (saves cost)
             PubliclyAccessible=True,                # Set False in production
-            BackupRetentionPeriod=7,                # 7 days of automated backups
+            BackupRetentionPeriod=0,                # 0 = disabled (required for free tier)
             Tags=[
                 {"Key": "Project", "Value": "agentic-trading"},
                 {"Key": "Environment", "Value": settings.ENVIRONMENT},
