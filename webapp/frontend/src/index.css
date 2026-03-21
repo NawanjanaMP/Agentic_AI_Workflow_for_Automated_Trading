@@ -1,0 +1,21 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-gray-950 text-gray-100 font-['Inter'];
+  }
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { @apply bg-gray-900; }
+  ::-webkit-scrollbar-thumb { @apply bg-gray-700 rounded-full; }
+}
+
+@layer components {
+  .card {
+    @apply bg-gray-900 border border-gray-800 rounded-xl p-4;
+  }
+  .badge-buy  { @apply bg-emerald-900/50 text-emerald-400 border border-emerald-800 px-2 py-0.5 rounded text-xs font-mono font-medium; }
+  .badge-sell { @apply bg-red-900/50     text-red-400     border border-red-800     px-2 py-0.5 rounded text-xs font-mono font-medium; }
+  .badge-hold { @apply bg-gray-800       text-gray-400    border border-gray-700    px-2 py-0.5 rounded text-xs font-mono font-medium; }
+}
