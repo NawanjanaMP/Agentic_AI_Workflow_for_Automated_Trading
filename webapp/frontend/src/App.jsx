@@ -1,11 +1,13 @@
 // src/App.jsx
 import { useEffect, useState } from 'react'
 import { getPortfolioMetrics } from './utils/api'
-import MetricCard   from './components/MetricCard'
-import SignalsTable from './components/SignalsTable'
-import PriceChart   from './components/PriceChart'
-import NewsFeed     from './components/NewsFeed'
-import { Activity, Cpu, RefreshCw } from 'lucide-react'
+import MetricCard        from './components/MetricCard'
+import SignalsTable      from './components/SignalsTable'
+import PriceChart        from './components/PriceChart'
+import NewsFeed          from './components/NewsFeed'
+import AgentDecisionPanel from './components/AgentDecisionPanel'
+import BacktestPanel     from './components/BacktestPanel'
+import { Activity, RefreshCw } from 'lucide-react'
 
 export default function App() {
   const [metrics,       setMetrics]       = useState(null)
@@ -147,43 +149,15 @@ export default function App() {
           </div>
         </div>
 
+        {/* ── Backtest Results (Phase 4) ────────────────── */}
+        <BacktestPanel />
+
         {/* ── Bottom row ───────────────────────────────── */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
 
-          {/* Agent decision panel */}
-          <div className="lg:col-span-2 card">
-            <div className="flex items-center gap-2 mb-3">
-              <Cpu size={14} className="text-emerald-500" />
-              <h2 className="text-sm font-semibold text-gray-300 uppercase tracking-wider">
-                Agent Decision Engine
-              </h2>
-              <span className="text-xs bg-emerald-900/40 text-emerald-400 border border-emerald-800 px-2 py-0.5 rounded ml-auto">
-                Phase 4 — Coming Soon
-              </span>
-            </div>
-            <div className="space-y-2">
-              {[
-                { sym: 'NVDA', action: 'BUY',  conf: 0.82, reason: 'Golden cross confirmed + RSI recovering from oversold. MACD bullish crossover. Strong volume.' },
-                { sym: 'TSLA', action: 'SELL', conf: 0.71, reason: 'Death cross forming. RSI overbought at 74. Bollinger upper band breach. Elevated ATR.' },
-                { sym: 'AAPL', action: 'HOLD', conf: 0.61, reason: 'Mixed signals — price above SMA20 but MACD divergence. Awaiting confirmation.' },
-                { sym: 'BTC-USDT', action: 'BUY', conf: 0.78, reason: 'Price near Bollinger lower band. RSI oversold at 28. Volume spike detected.' },
-              ].map((d, i) => (
-                <div key={i} className="flex items-start gap-3 p-2.5 rounded-lg bg-gray-800/50 border border-gray-800">
-                  <div className="flex items-center gap-2 min-w-0">
-                    <span className="font-mono text-xs text-white font-medium w-16 flex-shrink-0">{d.sym}</span>
-                    <span className={`text-xs font-mono font-medium flex-shrink-0 ${
-                      d.action === 'BUY' ? 'text-emerald-400' :
-                      d.action === 'SELL' ? 'text-red-400' : 'text-gray-400'
-                    }`}>{d.action}</span>
-                    <span className="text-gray-600 text-xs flex-shrink-0">{(d.conf * 100).toFixed(0)}% conf.</span>
-                    <p className="text-gray-500 text-xs leading-relaxed truncate">{d.reason}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-            <p className="text-xs text-gray-700 mt-3">
-              * Decisions above are illustrative. Live LangChain agent decisions will appear here in Phase 4.
-            </p>
+          {/* Agent decision panel (Phase 4 — Live) */}
+          <div className="lg:col-span-2">
+            <AgentDecisionPanel />
           </div>
 
           {/* News feed */}

@@ -10,11 +10,13 @@ const api = axios.create({
   timeout: 30000,
 })
 
-export const getSymbols        = ()           => api.get('/symbols')
-export const getPriceData      = (sym, days)  => api.get(`/price/${sym}?days=${days}`)
-export const getLatestSignals  = ()           => api.get('/signals/latest')
-export const getPortfolioMetrics = ()         => api.get('/metrics/portfolio')
-export const getLatestNews     = ()           => api.get('/news/latest')
-export const getHealth         = ()           => api.get('/health')
+export const getSymbols          = ()              => api.get('/symbols')
+export const getPriceData        = (sym, days)     => api.get(`/price/${sym}?days=${days}`)
+export const getLatestSignals    = ()              => api.get('/signals/latest')
+export const getPortfolioMetrics = ()              => api.get('/metrics/portfolio')
+export const getLatestNews       = ()              => api.get('/news/latest')
+export const getHealth           = ()              => api.get('/health')
+export const getAgentDecisions   = (symbols)       => api.get(`/agent/decisions${symbols ? `?symbols=${symbols}` : ''}`)
+export const getBacktestSummary  = (symbols)       => api.get(`/backtest/summary${symbols ? `?symbols=${symbols}` : ''}`)
 
 export default api

@@ -397,6 +397,99 @@ def get_latest_news():
         return {"count": 0, "articles": []}
 
 
+@app.get("/api/agent/decisions")
+def get_agent_decisions(
+    symbols: str = Query(default="AAPL,NVDA,TSLA,MSFT,BTC-USDT,ETH-USDT"),
+):
+    """
+    Run the full agentic decision loop (Phase 4).
+    Returns LLM/rule-based decisions with risk assessment for each symbol.
+    """
+    try:
+        import sys
+        sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
+        from src.agents.decision_engine import DecisionEngine
+
+        sym_list = [s.strip().upper() for s in symbols.split(",") if s.strip()]
+        engine   = DecisionEngine()
+        engine.info_retrieval.load_articles()
+        decisions = engine.decide_all(sym_list)
+
+        clean = []
+        for d in decisions:
+            sv = d.get("signal_vector", {})
+            clean.append({
+                "symbol":       d.get("symbol"),
+                "action":       d.get("action", "HOLD"),
+                "qty":          d.get("qty", 0),
+                "confidence":   round(float(d.get("confidence", 0)), 3),
+                "rationale":    d.get("rationale", ""),
+                "key_risks":    d.get("key_risks", ""),
+                "target_price": d.get("target_price"),
+                "stop_loss":    d.get("stop_loss"),
+                "approved":     d.get("approved", False),
+                "veto_reasons": d.get("veto_reasons", []),
+                "source":       d.get("source", "rule_based"),
+                "news_count":   d.get("news_count", 0),
+                "decided_at":   d.get("decided_at", ""),
+                "risk_metrics": d.get("risk_metrics", {}),
+                "signal": {
+                    "score":      sv.get("signal_score", 0),
+                    "signal":     sv.get("signal", "HOLD"),
+                    "rsi_14":     sv.get("rsi_14"),
+                    "macd_hist":  sv.get("macd_hist"),
+                    "bb_pct":     sv.get("bb_pct"),
+                    "vol_regime": sv.get("vol_regime"),
+                    "return_5d":  sv.get("return_5d_pct"),
+                    "close":      sv.get("close"),
+                },
+                "error": d.get("error"),
+            })
+
+        return {
+            "count":     len(clean),
+            "decisions": clean,
+            "ran_at":    datetime.now(timezone.utc).isoformat(),
+        }
+
+    except Exception as e:
+        logger.error(f"Agent decisions error: {e}")
+        raise HTTPException(500, f"Agent engine error: {str(e)}")
+
+
+@app.get("/api/backtest/summary")
+def get_backtest_summary(
+    symbols: str = Query(default="AAPL,MSFT,NVDA,TSLA,SPY,QQQ"),
+):
+    """
+    Run walk-forward backtest for a set of symbols (Phase 4).
+    Returns per-symbol performance metrics.
+    """
+    try:
+        import sys
+        sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
+        from src.models.backtester import Backtester
+
+        sym_list = [s.strip().upper() for s in symbols.split(",") if s.strip()]
+        bt       = Backtester(initial_capital=100_000)
+        summary  = bt.run_portfolio(sym_list)
+
+        if summary.empty:
+            return {"count": 0, "results": [], "initial_capital": 100_000}
+
+        results = summary.reset_index().to_dict("records")
+        return {
+            "count":           len(results),
+            "results":         results,
+            "initial_capital": 100_000,
+            "ran_at":          datetime.now(timezone.utc).isoformat(),
+        }
+
+    except Exception as e:
+        logger.error(f"Backtest error: {e}")
+        raise HTTPException(500, f"Backtest error: {str(e)}")
+
+
 @app.get("/api/health")
 def health_check():
     """Health check endpoint for EC2 load balancer / monitoring."""
