@@ -41,3 +41,7 @@ logs/
 .coverage
 htmlcov/
 .pytest_cache/
+
+# Changes
+docs/
+*.md
