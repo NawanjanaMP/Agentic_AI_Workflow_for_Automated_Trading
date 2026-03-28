@@ -28,7 +28,7 @@ agentic-trading/
 ├── notebooks/               # EDA Jupyter notebooks (Phase 2)
 ├── tests/                   # Unit tests
 ├── docs/                    # Architecture diagrams, reports
-├── .env.example             # Environment variable template
+├── .env                     # Environment variable template
 ├── requirements.txt         # Python dependencies
 └── README.md
 ```
@@ -51,7 +51,7 @@ pip install -r requirements.txt
 ### 2. Configure Environment
 
 ```bash
-cp .env.example .env
+cp .env .env
 # Edit .env with your API keys (see API Keys section below)
 ```
 
