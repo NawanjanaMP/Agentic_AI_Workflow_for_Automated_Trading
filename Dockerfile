@@ -26,9 +26,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY webapp/backend/requirements.txt /tmp/backend-requirements.txt
 RUN pip install --no-cache-dir -r /tmp/backend-requirements.txt
 
-# Install root-level requirements (backtrader, src/* models)
-COPY requirements.txt /tmp/requirements.txt
-RUN pip install --no-cache-dir -r /tmp/requirements.txt
+# Install production requirements (backtrader, src/* models — no torch/airflow/vectorbt)
+COPY requirements.prod.txt /tmp/requirements.prod.txt
+RUN pip install --no-cache-dir -r /tmp/requirements.prod.txt
 
 # Copy project source
 COPY src/         ./src/
