@@ -80,7 +80,7 @@ export default function AgentDecisionPanel() {
           Agent Decision Engine
         </h2>
         <span className="text-xs bg-emerald-900/40 text-emerald-400 border border-emerald-800 px-2 py-0.5 rounded ml-auto">
-          Phase 4 — Live
+          Live 
         </span>
         <button
           onClick={load}

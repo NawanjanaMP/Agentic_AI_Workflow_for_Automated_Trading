@@ -501,7 +501,7 @@ export default function BacktestPanel() {
       <div className="flex items-center gap-2 mb-1">
         <BarChart2 size={14} className="text-blue-400" />
         <h2 className="text-sm font-semibold text-gray-300 uppercase tracking-wider">
-          Phase 5 — Professional Backtesting
+          Backtesting 
         </h2>
         <span className="text-xs bg-blue-900/30 text-blue-400 border border-blue-800 px-2 py-0.5 rounded ml-auto">
           Backtrader · Walk-Forward · Monte Carlo
