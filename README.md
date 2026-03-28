@@ -1,6 +1,6 @@
 # Agentic AI Trading Workflow System
 
-> **Data Science Project — Option 1 (Finance Domain)**
+> **Data Science Project — Finance Domain**
 > Autonomous market analysis, news retrieval, and Buy/Sell/Hold decision engine powered by Agentic AI.
 
 ---
