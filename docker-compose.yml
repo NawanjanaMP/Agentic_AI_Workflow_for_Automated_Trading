@@ -1,0 +1,61 @@
+version: "3.9"
+
+# ── Agentic AI Trading Workflow — Docker Compose ─────────────────
+# Local development: docker compose up --build
+# Production (EC2): docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+
+services:
+
+  # ── FastAPI + React (unified container) ──────────────────────────
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: trading-backend
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    environment:
+      # Override these in .env or docker-compose.prod.yml
+      - PYTHONUNBUFFERED=1
+      - PYTHONPATH=/app
+    volumes:
+      # Mount source for hot-reload in dev (remove in prod)
+      - ./src:/app/src:ro
+      - ./webapp/backend:/app/webapp/backend:ro
+    healthcheck:
+      test: ["CMD", "python", "-c",
+             "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - trading-net
+
+  # ── Nginx reverse proxy (production only — comment out for dev) ──
+  nginx:
+    image: nginx:1.25-alpine
+    container_name: trading-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./deploy/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./deploy/nginx/conf.d:/etc/nginx/conf.d:ro
+      # SSL certs (Let's Encrypt — see deploy/README)
+      - ./deploy/nginx/ssl:/etc/nginx/ssl:ro
+      # Frontend static files (built into backend image, but also mountable here)
+      - ./webapp/frontend/dist:/usr/share/nginx/html:ro
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - trading-net
+
+networks:
+  trading-net:
+    driver: bridge

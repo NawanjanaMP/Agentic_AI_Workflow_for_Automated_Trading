@@ -1,0 +1,15 @@
+venv/
+__pycache__/
+*.pyc
+*.pyo
+.env
+.git/
+.gitignore
+*.md
+docs/
+notebooks/
+tests/
+webapp/frontend/node_modules/
+webapp/frontend/dist/
+*.log
+.DS_Store

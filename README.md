@@ -148,12 +148,13 @@ APIs/WebSocket ─────────────────────�
 
 | Phase | Status | Description |
 |-------|--------|-------------|
-| **Phase 1** — Data Collection | ✅ Complete | APIs, S3, RDS, Airflow DAG |
-| **Phase 2** — EDA | 🔲 Next | Cleaning, features, signals |
-| **Phase 3** — ML Models | 🔲 Upcoming | XGBoost, GARCH, clustering |
-| **Phase 4** — Agentic AI | 🔲 Upcoming | LangChain agent + RAG |
-| **Phase 5** — Backtesting | 🔲 Upcoming | Backtrader, walk-forward |
-| **Phase 6** — Reporting | 🔲 Upcoming | Final report + presentation |
+| **Phase 1** — Data Collection | ✅ Complete | Yahoo Finance, Binance, NewsAPI → S3 (Parquet) |
+| **Phase 2** — EDA | ✅ Complete | Return distributions, GARCH, K-Means regimes, correlation |
+| **Phase 3** — Signal Generation & Risk | ✅ Complete | SMA/RSI/MACD/BB scoring, XGBoost, GARCH, ATR sizing |
+| **Phase 4** — Agentic AI Engine | ✅ Complete | LangChain + GPT-4o-mini/Claude Haiku + RAG news pipeline |
+| **Phase 5** — Professional Backtesting | ✅ Complete | Backtrader, walk-forward (5-fold OOS), Monte Carlo (1000 paths) |
+| **Phase 6** — Final Report | ✅ Complete | Academic report — see docs/FINAL_REPORT.md |
+| **Phase 7** — Cloud Deployment | 🔲 In Progress | Docker, EC2, Nginx, production deployment |
 
 ---
 
