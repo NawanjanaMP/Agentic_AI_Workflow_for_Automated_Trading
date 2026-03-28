@@ -1,7 +1,7 @@
 // src/components/AgentDecisionPanel.jsx
 import { useEffect, useState } from 'react'
 import { getAgentDecisions } from '../utils/api'
-import { Cpu, RefreshCw, CheckCircle, XCircle, AlertTriangle } from 'lucide-react'
+import { Cpu, RefreshCw, CheckCircle, XCircle, AlertTriangle, WifiOff } from 'lucide-react'
 import clsx from 'clsx'
 
 function ActionBadge({ action }) {
@@ -58,7 +58,14 @@ export default function AgentDecisionPanel() {
     setError(null)
     getAgentDecisions()
       .then(r => setData(r.data))
-      .catch(e  => setError(e?.response?.data?.detail || e.message))
+      .catch(e  => {
+        const msg = e?.response?.data?.detail || e.message || 'Unknown error'
+        const isTimeout = e.code === 'ECONNABORTED' || msg.includes('timeout')
+        setError(isTimeout
+          ? 'Request timed out — the agent is still loading S3 data. Click refresh to try again.'
+          : msg
+        )
+      })
       .finally(() => setLoading(false))
   }
 
@@ -134,10 +141,12 @@ export default function AgentDecisionPanel() {
                     {/* Confidence */}
                     <ConfidenceBar value={d.confidence} />
 
-                    {/* Approved / Vetoed */}
-                    {d.approved
-                      ? <CheckCircle size={13} className="text-emerald-500" title="Approved by risk gate" />
-                      : <XCircle    size={13} className="text-red-500"     title="Vetoed by risk gate" />
+                    {/* Approved / Vetoed / Error */}
+                    {d.error
+                      ? <WifiOff    size={13} className="text-gray-600"    title="No data available" />
+                      : d.approved
+                        ? <CheckCircle size={13} className="text-emerald-500" title="Approved by risk gate" />
+                        : <XCircle    size={13} className="text-red-500"     title="Vetoed by risk gate" />
                     }
 
                     {/* Source */}

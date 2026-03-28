@@ -381,20 +381,64 @@ def _get_signal(symbol: str) -> str:
 
 @app.get("/api/news/latest")
 def get_latest_news():
-    """Return latest news headlines from S3."""
-    try:
-        import json
-        today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
-        key   = f"news/newsapi/{today}.jsonl"
+    """
+    Return latest news headlines from S3.
+    Falls back up to 7 days if today's file is missing.
+    Also pulls from RSS feeds stored alongside NewsAPI articles.
+    """
+    import json
 
-        obj      = s3.get_object(Bucket=RAW_BUCKET, Key=key)
-        lines    = obj["Body"].read().decode("utf-8").strip().split("\n")
-        articles = [json.loads(l) for l in lines if l.strip()][:20]
+    def _read_jsonl(key: str) -> list[dict]:
+        try:
+            obj   = s3.get_object(Bucket=RAW_BUCKET, Key=key)
+            lines = obj["Body"].read().decode("utf-8").strip().split("\n")
+            return [json.loads(l) for l in lines if l.strip()]
+        except Exception:
+            return []
 
-        return {"count": len(articles), "articles": articles}
-    except Exception as e:
-        logger.warning(f"News fetch failed: {e}")
-        return {"count": 0, "articles": []}
+    articles = []
+    date_found = None
+
+    # Try today then walk back up to 7 days to find the most recent NewsAPI file
+    for days_back in range(7):
+        date = (datetime.now(timezone.utc) - timedelta(days=days_back)).strftime("%Y-%m-%d")
+        found = _read_jsonl(f"news/newsapi/{date}.jsonl")
+        if found:
+            articles.extend(found)
+            date_found = date
+            break
+
+    # Also pull from RSS feeds for the same date (or most recent available)
+    rss_sources = [
+        "reuters_business", "yahoo_finance_news",
+        "marketwatch", "cnbc_finance",
+    ]
+    for source in rss_sources:
+        for days_back in range(7):
+            date = (datetime.now(timezone.utc) - timedelta(days=days_back)).strftime("%Y-%m-%d")
+            rss_articles = _read_jsonl(f"news/rss/{source}/{date}.jsonl")
+            if rss_articles:
+                articles.extend(rss_articles[:5])  # cap 5 per RSS source
+                break
+
+    # Deduplicate by title, sort by published_at desc, cap at 30
+    seen   = set()
+    unique = []
+    for a in articles:
+        title = a.get("title", "")
+        if title and title not in seen:
+            seen.add(title)
+            unique.append(a)
+
+    unique.sort(key=lambda a: a.get("published_at", ""), reverse=True)
+    unique = unique[:30]
+
+    logger.info(f"News feed: {len(unique)} articles (date_found={date_found})")
+    return {
+        "count":      len(unique),
+        "articles":   unique,
+        "date_found": date_found,
+    }
 
 
 @app.get("/api/agent/decisions")
@@ -413,7 +457,17 @@ def get_agent_decisions(
         sym_list = [s.strip().upper() for s in symbols.split(",") if s.strip()]
         engine   = DecisionEngine()
         engine.info_retrieval.load_articles()
-        decisions = engine.decide_all(sym_list)
+
+        # Run per-symbol with correct asset_type (crypto vs stocks)
+        crypto_syms = {s.upper() for s in CRYPTO_SYMBOLS}
+        decisions = []
+        for sym in sym_list:
+            asset_type = "crypto" if sym in crypto_syms else "stocks"
+            try:
+                decisions.append(engine.decide(sym, asset_type))
+            except Exception as e:
+                logger.error(f"Agent loop failed for {sym}: {e}")
+                decisions.append({"symbol": sym, "action": "HOLD", "error": str(e)})
 
         clean = []
         for d in decisions:
@@ -488,6 +542,139 @@ def get_backtest_summary(
     except Exception as e:
         logger.error(f"Backtest error: {e}")
         raise HTTPException(500, f"Backtest error: {str(e)}")
+
+
+# ── Phase 5 endpoints ──────────────────────────────────────────────
+
+@app.get("/api/backtest/phase5")
+def get_backtest_phase5(
+    symbols:   str  = Query(default="AAPL,MSFT,NVDA,TSLA,SPY,QQQ"),
+    use_cache: bool = Query(default=True),
+):
+    """
+    Phase 5 full backtest: Signal vs MA-Crossover vs Buy-Hold,
+    walk-forward validation, and Monte Carlo simulation.
+    Results cached in S3 per symbol per day.
+    """
+    try:
+        import sys
+        sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
+        from src.models.backtest_orchestrator import BacktestOrchestrator
+
+        sym_list    = [s.strip().upper() for s in symbols.split(",") if s.strip()]
+        crypto_set  = {s.upper() for s in CRYPTO_SYMBOLS}
+        asset_types = {s: ("crypto" if s in crypto_set else "stocks") for s in sym_list}
+
+        orch   = BacktestOrchestrator(initial_capital=100_000)
+        result = orch.run_portfolio(
+            symbols         = sym_list,
+            asset_types     = asset_types,
+            run_monte_carlo = True,
+            use_cache       = use_cache,
+        )
+        return result
+
+    except Exception as e:
+        logger.error(f"Phase 5 backtest error: {e}")
+        raise HTTPException(500, f"Phase 5 backtest error: {str(e)}")
+
+
+@app.get("/api/backtest/phase5/{symbol}")
+def get_backtest_phase5_symbol(
+    symbol:    str,
+    use_cache: bool = Query(default=True),
+):
+    """
+    Phase 5 full backtest for a single symbol.
+    Returns equity curves, Monte Carlo paths, and trade log.
+    """
+    try:
+        import sys
+        sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
+        from src.models.backtest_orchestrator import BacktestOrchestrator
+
+        sym        = symbol.upper()
+        crypto_set = {s.upper() for s in CRYPTO_SYMBOLS}
+        asset_type = "crypto" if sym in crypto_set else "stocks"
+
+        orch   = BacktestOrchestrator(initial_capital=100_000)
+        result = orch.run_symbol(
+            symbol          = sym,
+            asset_type      = asset_type,
+            run_monte_carlo = True,
+            use_cache       = use_cache,
+        )
+        return result
+
+    except Exception as e:
+        logger.error(f"Phase 5 symbol error [{symbol}]: {e}")
+        raise HTTPException(500, f"Phase 5 error: {str(e)}")
+
+
+@app.get("/api/backtest/walkforward")
+def get_walk_forward(
+    symbols:  str = Query(default="AAPL,MSFT,NVDA,TSLA,SPY,QQQ"),
+    n_splits: int = Query(default=5, ge=2, le=10),
+):
+    """
+    Walk-forward validation only (no Monte Carlo) — faster than /phase5.
+    Returns fold-by-fold out-of-sample metrics per symbol.
+    """
+    try:
+        import sys
+        sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "../..")))
+        from src.models.walk_forward          import WalkForwardValidator
+        from src.models.backtest_orchestrator import BacktestOrchestrator
+
+        sym_list   = [s.strip().upper() for s in symbols.split(",") if s.strip()]
+        crypto_set = {s.upper() for s in CRYPTO_SYMBOLS}
+
+        orch      = BacktestOrchestrator(initial_capital=100_000)
+        wf_engine = WalkForwardValidator(initial_capital=100_000, n_splits=n_splits)
+        spy_df    = orch._load_symbol("SPY", "stocks")
+
+        results = []
+        for sym in sym_list:
+            atype = "crypto" if sym in crypto_set else "stocks"
+            df    = orch._load_symbol(sym, atype)
+            if df.empty or len(df) < 315:
+                results.append({"symbol": sym, "error": "Insufficient data"})
+                continue
+            try:
+                wf  = wf_engine.run(sym, df, strategy="signal",
+                                    benchmark_df=spy_df if not spy_df.empty else None)
+                agg = wf.get("aggregated_metrics", {})
+                results.append({
+                    "symbol":          sym,
+                    "n_splits":        wf.get("n_splits", 0),
+                    "oos_sharpe_mean": agg.get("sharpe_ratio_mean",     0),
+                    "oos_sharpe_std":  agg.get("sharpe_ratio_std",      0),
+                    "oos_return_mean": agg.get("total_return_pct_mean", 0),
+                    "oos_max_dd_mean": agg.get("max_drawdown_pct_mean", 0),
+                    "oos_win_rate":    agg.get("win_rate_pct_mean",     0),
+                    "folds": [
+                        {
+                            "fold_id":    f["fold_id"],
+                            "test_start": f["test_start"],
+                            "test_end":   f["test_end"],
+                            "sharpe":     f["oos_metrics"].get("sharpe_ratio",     0),
+                            "return_pct": f["oos_metrics"].get("total_return_pct", 0),
+                            "max_dd":     f["oos_metrics"].get("max_drawdown_pct", 0),
+                            "trades":     f["oos_metrics"].get("total_trades",     0),
+                        }
+                        for f in wf.get("folds", [])
+                    ],
+                })
+            except Exception as e:
+                logger.error(f"Walk-forward failed for {sym}: {e}")
+                results.append({"symbol": sym, "error": str(e)})
+
+        return {"count": len(results), "n_splits": n_splits,
+                "ran_at": datetime.now(timezone.utc).isoformat(), "results": results}
+
+    except Exception as e:
+        logger.error(f"Walk-forward endpoint error: {e}")
+        raise HTTPException(500, f"Walk-forward error: {str(e)}")
 
 
 @app.get("/api/health")

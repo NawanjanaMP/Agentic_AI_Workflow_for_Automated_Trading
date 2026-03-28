@@ -16,3 +16,5 @@ langchain-core==0.1.46
 openai==1.16.2
 faiss-cpu==1.8.0
 sentence-transformers==2.6.1
+# Phase 5 — Professional Backtesting
+backtrader==1.9.78.123

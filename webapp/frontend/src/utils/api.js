@@ -16,7 +16,16 @@ export const getLatestSignals    = ()              => api.get('/signals/latest')
 export const getPortfolioMetrics = ()              => api.get('/metrics/portfolio')
 export const getLatestNews       = ()              => api.get('/news/latest')
 export const getHealth           = ()              => api.get('/health')
-export const getAgentDecisions   = (symbols)       => api.get(`/agent/decisions${symbols ? `?symbols=${symbols}` : ''}`)
-export const getBacktestSummary  = (symbols)       => api.get(`/backtest/summary${symbols ? `?symbols=${symbols}` : ''}`)
+// Phase 4 endpoints are heavy (S3 loads + ML) — use 3-minute timeout
+export const getAgentDecisions   = (symbols)       => api.get(`/agent/decisions${symbols ? `?symbols=${symbols}` : ''}`,  { timeout: 180000 })
+export const getBacktestSummary  = (symbols)       => api.get(`/backtest/summary${symbols ? `?symbols=${symbols}` : ''}`, { timeout: 180000 })
+
+// Phase 5 endpoints — Backtrader + walk-forward + Monte Carlo (10-min timeout)
+export const getBacktestPhase5       = (symbols, useCache = true) =>
+  api.get(`/backtest/phase5?symbols=${symbols || 'AAPL,MSFT,NVDA,TSLA,SPY,QQQ'}&use_cache=${useCache}`, { timeout: 600000 })
+export const getBacktestPhase5Symbol = (symbol, useCache = true) =>
+  api.get(`/backtest/phase5/${symbol}?use_cache=${useCache}`, { timeout: 300000 })
+export const getWalkForward          = (symbols, nSplits = 5) =>
+  api.get(`/backtest/walkforward?symbols=${symbols || 'AAPL,MSFT,NVDA,TSLA,SPY,QQQ'}&n_splits=${nSplits}`, { timeout: 300000 })
 
 export default api

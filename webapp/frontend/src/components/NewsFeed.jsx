@@ -32,7 +32,13 @@ export default function NewsFeed() {
 
       <div className="space-y-3 max-h-96 overflow-y-auto pr-1">
         {articles.length === 0 && (
-          <p className="text-gray-600 text-sm text-center py-4">No news available</p>
+          <div className="text-center py-6 space-y-1">
+            <p className="text-gray-600 text-xs">No news articles found in S3.</p>
+            <p className="text-gray-700 text-xs">Run the news collector to populate:</p>
+            <code className="text-gray-700 text-xs bg-gray-800 px-2 py-0.5 rounded block mx-4">
+              python -m data.ingestion.news_collector
+            </code>
+          </div>
         )}
         {articles.map((a, i) => (
           <div key={i} className="border-b border-gray-800/50 pb-3 last:border-0">
