@@ -153,7 +153,7 @@ APIs/WebSocket ─────────────────────�
 | **Phase 3** — Signal Generation & Risk | ✅ Complete | SMA/RSI/MACD/BB scoring, XGBoost, GARCH, ATR sizing |
 | **Phase 4** — Agentic AI Engine | ✅ Complete | LangChain + GPT-4o-mini/Claude Haiku + RAG news pipeline |
 | **Phase 5** — Professional Backtesting | ✅ Complete | Backtrader, walk-forward (5-fold OOS), Monte Carlo (1000 paths) |
-| **Phase 6** — Final Report | ✅ Complete | Academic report — see docs/FINAL_REPORT.md |
+| **Phase 6** — Final Report | 🔲 In Progress | FINAL_REPORT.md |
 | **Phase 7** — Cloud Deployment | 🔲 In Progress | Docker, EC2, Nginx, production deployment |
 
 ---
